@@ -11,7 +11,6 @@ module.exports = {
     'mobile',
     'backend',
     'packages',
-    'supabase',
     'tasks',
     'history',
     'database',

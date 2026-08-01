@@ -751,7 +751,7 @@ INSERT INTO feedback (counsellor_id, user_id, q1_comfort, q2_understood, q3_time
 
 ### 13.4 QR Code Generation
 - Each counsellor has unique QR code generated from counsellor_id
-- QR code encodes URL: `https://wellness.iitm.ac.in/feedback?counsellor_id={id}`
+- QR code encodes URL: `http://localhost:50000/feedback?counsellor_id={id}`
 - Scanning QR code opens feedback form with counsellor pre-selected
 
 ### 13.5 Export Logic

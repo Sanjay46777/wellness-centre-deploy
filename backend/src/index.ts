@@ -3,8 +3,6 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
-import path from 'path';
-import fs from 'fs';
 import { env } from './config/env';
 import { testConnection } from './config/db';
 import { errorHandler } from './middleware/errorHandler';
@@ -62,16 +60,6 @@ app.use('/api/qr-code', qrRoutes);
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
-
-// Serve the built frontend (dist/) so a single service hosts both API and UI
-const distDir = path.resolve(process.cwd(), 'dist');
-if (fs.existsSync(distDir)) {
-  app.use(express.static(distDir));
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) return next();
-    res.sendFile(path.join(distDir, 'index.html'));
-  });
-}
 
 app.use(errorHandler);
 

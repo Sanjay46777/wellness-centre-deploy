@@ -7,6 +7,7 @@ import { randomBytes } from 'crypto';
 import { pool } from '../config/db';
 import { env } from '../config/env';
 import { AppError } from '../middleware/errorHandler';
+import { authenticate } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
 import { logger } from '../utils/logger';
 import { sendEmail, getResetUrl } from '../services/email';
@@ -234,21 +235,12 @@ router.post(
   }
 );
 
-router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/me', authenticate, async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-      throw new AppError(401, 'Unauthorized');
-    }
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, env.JWT_SECRET) as {
-      id: number;
-      email: string;
-      role: UserRole;
-    };
+    const userId = (req as any).user?.id as number;
     const [rows] = await pool.execute(
       'SELECT id, email, full_name, role, student_id, phone, status FROM users WHERE id = ?',
-      [decoded.id]
+      [userId]
     );
     const users = rows as any[];
     if (users.length === 0) {

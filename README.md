@@ -5,116 +5,149 @@ A modern, responsive web application for the IIT Madras Wellness Centre. It repl
 ## Features
 
 - Role-based access: students, head counsellors, and admins.
-- Student feedback form with 10-question rating scale, recommendation, and comments.
+- Student feedback form with a 10-question rating scale, recommendation, and comments.
 - QR-code generation linking directly to a counsellor's feedback form.
 - Institution and per-counsellor analytics dashboards.
 - Counsellor management (create, edit, activate/deactivate) for admins.
 - Pending head-counsellor registration approvals.
 - Export reports as PPT, PDF, or Excel.
 - Responsive design with light/dark mode support.
-- Editorial aesthetic: refined typography, restrained deep-red accent, generous whitespace.
+- Production-safe API: JWT auth, input validation, rate limiting, parameterized SQL, connection pooling.
 
 ## Tech Stack
 
-- **Frontend:** React 18 + TypeScript + Vite
-- **Styling:** Tailwind CSS + shadcn/ui
-- **Icons:** Lucide React
-- **Animations:** Framer Motion
-- **Charts:** Recharts
-- **State Management:** Zustand
-- **Forms:** React Hook Form + Zod
-- **Backend:** Node.js + Express
-- **Database:** MySQL
-- **Authentication:** JWT + bcryptjs
-- **API:** RESTful JSON
+| Layer | Technology |
+|---|---|
+| Frontend | React 18 + TypeScript + Vite 5 |
+| Styling | Tailwind CSS + shadcn/ui |
+| Charts / Export | Recharts, jsPDF, pptxgenjs, SheetJS |
+| State / Forms | Zustand, React Hook Form + Zod |
+| Backend | Node.js + Express (TypeScript) |
+| Database | MySQL 8+ (`mysql2` with pooling) |
+| Auth | JWT + bcryptjs |
+| Validation | Zod (request body/query schemas) |
+| Security | helmet, CORS (env-controlled), express-rate-limit |
 
 ## Project Structure
 
 ```
-/workspace/app-dcgdau70ia69
-├── backend/                 # Express REST API
+wellness-centre-project
+├── backend/                 # Express REST API (TypeScript)
 │   ├── src/
-│   │   ├── config/          # Database and env configuration
-│   │   ├── middleware/      # Auth, validation, error handling
-│   │   ├── routes/          # API route modules
-│   │   ├── services/        # Analytics and export logic
-│   │   └── index.ts         # Server entry point
-│   ├── database/            # Schema, seed, and migration scripts
-│   └── docker-compose.yml   # Local MySQL setup
+│   │   ├── config/          # env schema (Zod) + DB connection pool
+│   │   ├── middleware/      # auth + role guard, validation, error handler
+│   │   ├── routes/          # auth, counsellors, feedback, admin, analytics, exports, qr
+│   │   ├── services/        # analytics, email, export logic
+│   │   ├── utils/           # logger
+│   │   └── index.ts         # server entry point
+│   └── scripts/             # migrate.ts, seed.ts
+├── database/                # schema.sql, seed.sql, full DB export
 ├── src/                     # React frontend
-│   ├── app/                 # App entry and router
+│   ├── app/                 # app entry and router
 │   ├── components/          # UI components and layouts
-│   ├── lib/                 # Utilities, analytics, export helpers
-│   ├── pages/               # Page-level route components
+│   ├── lib/                 # API client, analytics, export helpers
+│   ├── pages/               # page-level route components
 │   ├── stores/              # Zustand state stores
 │   └── types/               # TypeScript types
-├── docs/                    # PRD, design docs, API docs, ADRs
-└── dist/                    # Production frontend build
+├── docs/                    # PRD, API, design, installation, deployment, ADRs
+├── docker-compose.yml       # Local MySQL container (optional)
+└── e2e-test.mjs / e2e-full.mjs  # API end-to-end test scripts
 ```
 
 ## Quick Start
 
-1. **Install dependencies**
+### Prerequisites
+
+- Node.js 20+ and pnpm
+- MySQL 8+ server running locally on port `3306`
+
+### 1. Install dependencies
 
 ```bash
 pnpm install
 ```
 
-2. **Configure environment**
+### 2. Configure environment
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your database credentials and JWT secret.
+Set your MySQL credentials and a strong `JWT_SECRET` (16+ chars). Defaults assume a local root user.
 
-3. **Start the database**
+### 3. Prepare the database
 
-If you have Docker:
+Create the database locally or use Docker Compose:
+
+Option A: Docker Compose
 
 ```bash
+cp .env.example .env
 docker-compose up -d
 ```
 
-Otherwise, ensure a MySQL server is running and create the database:
-
-```sql
-CREATE DATABASE wellness_centre CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-4. **Run database migrations and seed**
+Option B: Local MySQL
 
 ```bash
-pnpm run db:migrate
-pnpm run db:seed
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS wellness_centre CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 ```
 
-5. **Start the backend**
+### 4. Migrate and seed
 
 ```bash
-pnpm run dev:backend
+pnpm run migrate
+pnpm run seed
 ```
 
-6. **Start the frontend**
+### 5. Start the app
 
 ```bash
 pnpm run dev
 ```
 
-The frontend will be available at `http://localhost:50000` and the backend at `http://localhost:3001`.
+`pnpm run dev` starts the backend (port `3001`) and the frontend (port `50000`) together. Open `http://localhost:50000`.
+
+## Environment Variables
+
+All variables are defined in `.env.example`.
+
+| Variable | Default | Description |
+|---|---|---|
+| `PORT` | `3001` | Backend API port |
+| `NODE_ENV` | `development` | `development`, `production`, or `test` |
+| `DB_HOST` | `localhost` | MySQL host |
+| `DB_PORT` | `3306` | MySQL port |
+| `DB_USER` | `root` | MySQL user |
+| `DB_PASSWORD` | *(empty)* | MySQL password |
+| `DB_NAME` | `wellness_centre` | Database name |
+| `DB_SSL` | `false` | Set `true` when the DB requires SSL (e.g. managed cloud MySQL) |
+| `JWT_SECRET` | *(required)* | Signing secret, 16+ characters |
+| `JWT_EXPIRES_IN` | `1h` | Token lifetime |
+| `AUTH_RATE_LIMIT_MAX` | `5` | Max auth requests per minute per IP |
+| `FRONTEND_URL` | `http://localhost:50000` | Allowed CORS origin + QR feedback URL base |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | *(optional)* | Email delivery for password resets; omitted = reset links are logged |
+| `VITE_API_BASE_URL` | `http://localhost:3001/api` | Frontend → backend base URL (baked in at build time) |
 
 ## Available Scripts
 
 | Command | Description |
 |---|---|
-| `pnpm run dev` | Start the Vite development server |
-| `pnpm run dev:backend` | Start the Express backend with hot reload |
-| `pnpm run build` | Build the frontend for production |
-| `pnpm run build:backend` | Compile the backend TypeScript |
-| `pnpm run lint` | Run ESLint on the frontend code |
-| `pnpm run db:migrate` | Run MySQL migrations |
-| `pnpm run db:seed` | Seed the database with sample data |
-| `pnpm run preview` | Preview the production frontend build |
+| `pnpm run dev` | Start frontend (Vite) + backend (tsx watch) together |
+| `pnpm run dev:frontend` | Start only the Vite dev server |
+| `pnpm run dev:backend` | Start only the backend with hot reload |
+| `pnpm run build` | Type-check and build the frontend to `dist/` |
+| `pnpm run build:backend` | Compile the backend to `backend/dist/` |
+| `pnpm run start:backend` | Run the compiled backend |
+| `pnpm run lint` | ESLint on the frontend code |
+| `pnpm run migrate` | Apply the schema (see `database/schema.sql`) |
+| `pnpm run seed` | Insert demo users + counsellors (see `database/seed.sql`) |
+| `pnpm run ci` | Run the GitHub Actions CI locally via `act` or inspect `.github/workflows/ci.yml` |
+
+## Continuous Integration
+
+A GitHub Actions workflow is included at `.github/workflows/ci.yml` to build and validate the project automatically on each push or pull request to `main`/`master`.
+
+This ensures that frontend and backend code remain deployable and that database-related changes are checked before merging.
 
 ## Demo Credentials
 
@@ -124,21 +157,35 @@ The frontend will be available at `http://localhost:50000` and the backend at `h
 | Head Counsellor | `wo@smail.iitm.ac.in` | `6hxkTs&1*CuE&ot@` |
 | Student | `student-demo@wellness.local` | `StudentDemo1!` |
 
-## Mock API Mode
+## Security
 
-For frontend development without a running backend, set the following in your `.env`:
+- All SQL is executed with prepared statements (`pool.execute` with `?` placeholders) — no string interpolation.
+- Passwords are hashed with bcryptjs.
+- JWT auth with per-route role guards (`admin`, `head_counsellor`, `student`).
+- Request bodies/queries validated against Zod schemas before touching the DB.
+- Rate limiting on auth endpoints, helmet headers, and CORS restricted to `FRONTEND_URL`.
+- `.env` is gitignored; never commit secrets.
 
-```env
-VITE_USE_MOCK_API=true
+## Testing
+
+Run the API end-to-end suites against a running backend:
+
+```bash
+node e2e-test.mjs     # core flows (auth, feedback, analytics, 401s)
+node e2e-full.mjs     # extended coverage
 ```
+
+## Deployment (free tier)
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for a step-by-step, zero-cost production deployment (Vercel/Netlify for the frontend, Render free tier for the API, and a free managed MySQL instance).
 
 ## Documentation
 
-- [Product Requirements Document](docs/PRD.md)
-- [Design System](docs/DESIGN.md)
+- [Product Requirements Document](docs/prd.md)
 - [API Documentation](docs/API.md)
+- [Design System](docs/DESIGN.md)
 - [Installation Guide](docs/INSTALLATION.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Deployment Guide (free tier)](docs/DEPLOYMENT.md)
 - [Architecture Decision Records](docs/decisions/)
 
 ## License

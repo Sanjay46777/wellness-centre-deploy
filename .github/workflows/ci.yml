@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build backend
+        run: pnpm exec tsc -p backend/tsconfig.json
+
+      - name: Build frontend
+        run: pnpm exec vite build
+
+      - name: Run backend typecheck
+        run: pnpm exec tsc -p backend/tsconfig.json --noEmit
+
+      - name: Run frontend typecheck
+        run: pnpm exec tsc --noEmit

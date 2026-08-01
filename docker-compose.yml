@@ -5,11 +5,13 @@ services:
     image: mysql:8.0
     container_name: wellness-mysql
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: wellness_centre
-      MYSQL_USER: wellness
-      MYSQL_PASSWORD: wellness
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-wellness_centre}
+      MYSQL_USER: ${MYSQL_USER:-wellness}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-wellness}
     ports:
       - "3306:3306"
     volumes:
@@ -27,13 +29,15 @@ services:
       dockerfile: backend/Dockerfile
     container_name: wellness-backend
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      PORT: 3001
-      DB_HOST: mysql
-      DB_PORT: 3306
-      DB_USER: wellness
-      DB_PASSWORD: wellness
-      DB_NAME: wellness_centre
+      PORT: ${PORT:-3001}
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-wellness}
+      DB_PASSWORD: ${DB_PASSWORD:-wellness}
+      DB_NAME: ${DB_NAME:-wellness_centre}
       JWT_SECRET: ${JWT_SECRET}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:50000}
     ports:
