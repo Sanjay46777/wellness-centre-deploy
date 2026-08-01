@@ -11,6 +11,7 @@ export const pool = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0,
   enableKeepAlive: true,
+  ssl: env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
 });
 
 export async function testConnection(): Promise<boolean> {

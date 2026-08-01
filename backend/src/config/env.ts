@@ -9,6 +9,7 @@ const envSchema = z.object({
   DB_USER: z.string().default('root'),
   DB_PASSWORD: z.string().default(''),
   DB_NAME: z.string().default('wellness_centre'),
+  DB_SSL: z.string().default('false'),
   JWT_SECRET: z.string().min(16).default('change_me_in_production'),
   JWT_EXPIRES_IN: z.string().default('1h'),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(5),
