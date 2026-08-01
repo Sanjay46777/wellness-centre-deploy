@@ -1,0 +1,23 @@
+import 'dotenv/config';
+import { z } from 'zod';
+
+const envSchema = z.object({
+  PORT: z.string().default('3001'),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  DB_HOST: z.string().default('localhost'),
+  DB_PORT: z.string().default('3306'),
+  DB_USER: z.string().default('root'),
+  DB_PASSWORD: z.string().default(''),
+  DB_NAME: z.string().default('wellness_centre'),
+  JWT_SECRET: z.string().min(16).default('change_me_in_production'),
+  JWT_EXPIRES_IN: z.string().default('1h'),
+  AUTH_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(5),
+  FRONTEND_URL: z.string().default('http://localhost:50000'),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.string().optional(),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  SMTP_FROM: z.string().optional(),
+});
+
+export const env = envSchema.parse(process.env);

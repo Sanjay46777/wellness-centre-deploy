@@ -1,0 +1,14 @@
+{
+  "name": "miaoda-react-devkit",
+  "version": "0.1.1-beta.15",
+  "description": "Miaoda React devkit shim for Vite sandbox",
+  "type": "module",
+  "main": "./cloud/vite.config.js",
+  "exports": {
+    "./cloud/vite.config": "./cloud/vite.config.js",
+    ".": "./cloud/vite.config.js"
+  },
+  "files": [
+    "cloud"
+  ]
+}
