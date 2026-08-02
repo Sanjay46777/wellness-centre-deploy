@@ -25,7 +25,6 @@ const feedbackSchema = z.object({
   q8_safe: z.number().min(1).max(5),
   q9_communication: z.number().min(1).max(5),
   q10_overall: z.number().min(1).max(5),
-  recommendation: z.enum(['Yes', 'No', 'Maybe']),
   comments: z.string().optional(),
   is_anonymous: z.boolean().default(true),
   respondent_email: z.string().email().optional().or(z.literal('')),
@@ -53,7 +52,6 @@ export function FeedbackForm({ counsellors, preselectedCounsellorId, onSuccess }
     resolver: zodResolver(feedbackSchema) as any,
     defaultValues: {
       counsellor_id: preselectedCounsellorId || 0,
-      recommendation: 'Yes',
       is_anonymous: true,
     },
   });
@@ -115,24 +113,6 @@ export function FeedbackForm({ counsellors, preselectedCounsellorId, onSuccess }
             />
           );
         })}
-      </div>
-
-      <div className="space-y-2">
-        <Label>Would you recommend this counsellor?</Label>
-        <Select
-          value={watch('recommendation')}
-          onValueChange={(v) => setValue('recommendation', v as 'Yes' | 'No' | 'Maybe', { shouldValidate: true })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select an option" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="Yes">Yes</SelectItem>
-            <SelectItem value="No">No</SelectItem>
-            <SelectItem value="Maybe">Maybe</SelectItem>
-          </SelectContent>
-        </Select>
-        {errors.recommendation && <p className="text-sm text-destructive">{errors.recommendation.message}</p>}
       </div>
 
       <div className="space-y-4 rounded-lg border p-4">
