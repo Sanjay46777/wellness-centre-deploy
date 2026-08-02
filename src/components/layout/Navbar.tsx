@@ -1,9 +1,18 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, LogOut, User, Moon, Sun } from 'lucide-react';
+import { Menu, LogOut, User, Moon, Sun, Settings } from 'lucide-react';
 import { useAuthStore } from '@/stores/authStore';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { WELLNESS_CENTRE_LOGO_URL } from '@/lib/assets';
 
@@ -37,6 +46,19 @@ export function Navbar() {
 
   const isActive = (href: string) => location.pathname === href;
 
+  const homeHref = isRole('admin')
+    ? '/admin/dashboard'
+    : isRole('head_counsellor')
+      ? '/head/dashboard'
+      : '/student/home';
+
+  const initials = (user?.full_name || 'U')
+    .split(' ')
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/60 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container-tight section-padding flex h-16 items-center justify-between">
@@ -69,18 +91,44 @@ export function Navbar() {
             {theme === 'light' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
           </Button>
           {user ? (
-            <>
-              <Link to={isRole('admin') ? '/admin/dashboard' : isRole('head_counsellor') ? '/head/dashboard' : '/student/home'}>
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <User className="h-4 w-4" />
-                  {user.full_name}
-                </Button>
-              </Link>
-              <Button variant="outline" size="sm" onClick={logout} className="gap-2">
-                <LogOut className="h-4 w-4" />
-                Sign Out
-              </Button>
-            </>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center gap-2 rounded-full p-1 transition-colors hover:bg-muted"
+                  aria-label="Account menu"
+                >
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="text-sm font-semibold">{initials}</AvatarFallback>
+                  </Avatar>
+                  <span className="hidden text-sm font-medium lg:block">{user.full_name}</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <p className="text-sm font-medium">{user.full_name}</p>
+                  <p className="text-xs text-muted-foreground">{user.email}</p>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile">
+                    <User className="mr-2 h-4 w-4" />
+                    Edit Profile
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to={homeHref}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    My Dashboard
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Link to="/role-select">
               <Button size="sm">Sign In</Button>
@@ -121,9 +169,16 @@ export function Navbar() {
               </nav>
               <div className="mt-auto flex flex-col gap-3">
                 {user ? (
-                  <Button variant="outline" onClick={() => { logout(); setOpen(false); }}>
-                    <LogOut className="mr-2 h-4 w-4" /> Sign Out
-                  </Button>
+                  <>
+                    <Link to="/profile" onClick={() => setOpen(false)}>
+                      <Button variant="ghost" className="w-full justify-start gap-2">
+                        <User className="h-4 w-4" /> Edit Profile
+                      </Button>
+                    </Link>
+                    <Button variant="outline" onClick={() => { logout(); setOpen(false); }}>
+                      <LogOut className="mr-2 h-4 w-4" /> Sign Out
+                    </Button>
+                  </>
                 ) : (
                   <Link to="/role-select" onClick={() => setOpen(false)}>
                     <Button className="w-full">Sign In</Button>

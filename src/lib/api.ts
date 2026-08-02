@@ -68,6 +68,8 @@ export const authApi = {
   resetPassword: (body: { token: string; password: string }) =>
     post<{ message: string }>('/auth/reset-password', body),
   me: () => get<{ user: any }>('/auth/me'),
+  updateProfile: (body: { full_name?: string; phone?: string; student_id?: string; password?: string }) =>
+    put<{ message: string; user: any }>('/auth/profile', body),
 };
 
 export const counsellorApi = {

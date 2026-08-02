@@ -11,6 +11,7 @@ import { validateBody } from '../middleware/validate';
 import { logger } from '../utils/logger';
 import { sendEmail, getResetUrl } from '../services/email';
 import { UserRole, UserStatus } from '../types';
+import { authenticate, AuthRequest } from '../middleware/auth';
 
 const router: Router = Router();
 
@@ -261,5 +262,54 @@ router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
     next(err);
   }
 });
+
+const updateProfileSchema = z.object({
+  full_name: z.string().min(1).optional(),
+  phone: z.string().optional(),
+  student_id: z.string().optional(),
+  password: z.string().min(8).optional(),
+});
+
+router.put(
+  '/profile',
+  authenticate,
+  validateBody(updateProfileSchema),
+  async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user!.id;
+      const { full_name, phone, student_id, password } = req.body;
+
+      const updates: string[] = [];
+      const values: any[] = [];
+      const add = (field: string, value: any) => {
+        values.push(value);
+        updates.push(`${field} = $${values.length}`);
+      };
+
+      if (full_name !== undefined) add('full_name', full_name);
+      if (phone !== undefined) add('phone', phone || null);
+      if (student_id !== undefined && req.user!.role === 'student') {
+        add('student_id', student_id || null);
+      }
+      if (password) {
+        const hash = await bcrypt.hash(password, 10);
+        add('password_hash', hash);
+      }
+
+      if (updates.length === 0) {
+        throw new AppError(400, 'Nothing to update');
+      }
+
+      const result = await query(
+        `UPDATE users SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${values.length + 1} RETURNING id, email, full_name, role, student_id, phone, status`,
+        [...values, userId]
+      );
+      logger.info(`Profile updated: user ${userId}`);
+      res.json({ message: 'Profile updated successfully', user: result.rows[0] });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
 
 export default router;

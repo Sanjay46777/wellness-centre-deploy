@@ -17,6 +17,7 @@ const AdminDashboard = lazy(() => import('@/pages/AdminDashboard').then((m) => (
 const ManageCounsellors = lazy(() => import('@/pages/ManageCounsellors').then((m) => ({ default: m.ManageCounsellors })));
 const ManageStudents = lazy(() => import('@/pages/ManageStudents').then((m) => ({ default: m.ManageStudents })));
 const Approvals = lazy(() => import('@/pages/Approvals').then((m) => ({ default: m.Approvals })));
+const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })));
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword').then((m) => ({ default: m.ForgotPassword })));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword').then((m) => ({ default: m.ResetPassword })));
 const NotFound = lazy(() => import('@/pages/NotFound').then((m) => ({ default: m.NotFound })));
@@ -101,6 +102,14 @@ function App() {
             element={
               <ProtectedRoute roles={['admin', 'head_counsellor']}>
                 <ManageStudents />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute roles={['student', 'admin', 'head_counsellor']}>
+                <ProfilePage />
               </ProtectedRoute>
             }
           />
