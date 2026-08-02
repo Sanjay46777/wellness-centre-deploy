@@ -5,11 +5,15 @@ import { logger } from '../utils/logger';
 
 async function runSqlFile(relPath: string): Promise<void> {
   const filePath = path.resolve(process.cwd(), relPath);
-  const sql = await fs.readFile(filePath, 'utf-8');
+  const raw = await fs.readFile(filePath, 'utf-8');
+  const sql = raw
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('--'))
+    .join('\n');
   const statements = sql
     .split(';')
     .map((s) => s.trim())
-    .filter((s) => s.length > 0 && !s.startsWith('--'));
+    .filter((s) => s.length > 0);
 
   const client = await pool.connect();
   try {

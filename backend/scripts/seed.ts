@@ -16,11 +16,15 @@ async function seed() {
     }
 
     const seedPath = path.resolve(__dirname, '../../database/seed.sql');
-    const sql = await fs.readFile(seedPath, 'utf-8');
+    const raw = await fs.readFile(seedPath, 'utf-8');
+    const sql = raw
+      .split('\n')
+      .filter((line) => !line.trim().startsWith('--'))
+      .join('\n');
     const statements = sql
       .split(';')
       .map((s) => s.trim())
-      .filter((s) => s.length > 0 && !s.startsWith('--') && !s.startsWith('NOTE'));
+      .filter((s) => s.length > 0);
 
     for (const statement of statements) {
       await client.query(statement);

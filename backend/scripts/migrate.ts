@@ -8,12 +8,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function migrate() {
   const schemaPath = path.resolve(__dirname, '../../database/schema.sql');
-  const schema = await fs.readFile(schemaPath, 'utf-8');
+  const raw = await fs.readFile(schemaPath, 'utf-8');
+  const sql = raw
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('--'))
+    .join('\n');
 
-  const statements = schema
+  const statements = sql
     .split(';')
     .map((s) => s.trim())
-    .filter((s) => s.length > 0 && !s.startsWith('--'));
+    .filter((s) => s.length > 0);
 
   const client = await pool.connect();
   try {
