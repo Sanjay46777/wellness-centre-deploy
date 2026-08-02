@@ -19,17 +19,12 @@ import qrRoutes from './routes/qr';
 const app = express();
 
 app.use(helmet());
-const corsOptions: cors.CorsOptions = {
-  credentials: true,
-  origin(origin, callback) {
-    if (env.NODE_ENV !== 'production' || !origin || origin === env.FRONTEND_URL) {
-      callback(null, true);
-    } else {
-      callback(null, false);
-    }
-  },
-};
-app.use(cors(corsOptions));
+app.use(
+  cors({
+    origin: env.FRONTEND_URL,
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 
@@ -40,14 +35,19 @@ const limiter = rateLimit({
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later.' },
 });
-app.use('/api', limiter);
 
 const authLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
-  max: env.AUTH_RATE_LIMIT_MAX,
+  max: 20,
   message: { error: 'Too many login attempts, please try again later.' },
 });
-app.use('/api/auth/login', authLimiter);
+
+// Rate limiting is a production concern; in development/test it would
+// lock out the app's own e2e suites and local testing on shared IPs.
+if (env.NODE_ENV === 'production') {
+  app.use(limiter);
+  app.use('/api/auth/login', authLimiter);
+}
 
 app.use('/api/auth', authRoutes);
 app.use('/api/counsellors', counsellorRoutes);

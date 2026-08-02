@@ -1,7 +1,7 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { pool } from '../config/db';
+import { query } from '../config/db';
 import { validateQuery } from '../middleware/validate';
 import { requireAuthAndRole } from '../middleware/auth';
 import {
@@ -11,7 +11,7 @@ import {
   FEEDBACK_QUESTIONS,
 } from '../services/analytics';
 
-const router: ReturnType<typeof Router> = Router();
+const router: Router = Router();
 
 const rangeQuerySchema = z.object({
   range: z.enum(['week', 'month', 'all', 'custom']).default('all'),
@@ -49,7 +49,7 @@ router.get(
       const teamFilter = team ? 'AND c.team = ?' : '';
       const teamParams = team ? [team] : [];
 
-      const [rows] = await pool.execute(
+      const { rows } = await query(
         `SELECT f.*, c.name as counsellor_name, c.designation, c.team, c.id as counsellor_id,
                 u.student_id, u.full_name as student_name, u.email as student_email
          FROM feedback f
@@ -109,14 +109,14 @@ router.get(
     try {
       const { range, start, end } = req.query as any;
       const dateFilter = buildDateFilter(range, start, end);
-      const [cRows] = await pool.execute('SELECT * FROM counsellors WHERE id = ?', [
+      const { rows: cRows } = await query('SELECT * FROM counsellors WHERE id = $1', [
         req.params.id,
       ]);
       const counsellors = cRows as any[];
       if (counsellors.length === 0) {
         return res.status(404).json({ error: 'Counsellor not found' });
       }
-      const [fRows] = await pool.execute(
+      const { rows: fRows } = await query(
         `SELECT f.*, c.name as counsellor_name, u.student_id, u.full_name as student_name, u.email as student_email
          FROM feedback f
          JOIN counsellors c ON f.counsellor_id = c.id
@@ -149,7 +149,7 @@ router.get(
       const teamFilter = team ? 'AND c.team = ?' : '';
       const teamParams = team ? [team] : [];
 
-      const [rows] = await pool.execute(
+      const { rows } = await query(
         `SELECT f.*, c.name as counsellor_name, c.designation, c.team, c.id as counsellor_id
          FROM feedback f
          JOIN counsellors c ON f.counsellor_id = c.id

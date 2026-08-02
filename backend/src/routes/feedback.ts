@@ -1,12 +1,12 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { pool } from '../config/db';
+import { query } from '../config/db';
 import { validateBody } from '../middleware/validate';
 import { authenticate, authorize, AuthRequest } from '../middleware/auth';
 import { logger } from '../utils/logger';
 
-const router: ReturnType<typeof Router> = Router();
+const router: Router = Router();
 
 const feedbackSchema = z.object({
   counsellor_id: z.number().int(),
@@ -54,12 +54,13 @@ router.post(
       const user_id = req.user!.id;
       const email = is_anonymous ? null : respondent_email || req.user!.email || null;
 
-      const [result] = await pool.execute(
+      const result = await query(
         `INSERT INTO feedback (
           counsellor_id, user_id, q1_comfort, q2_understood, q3_time, q4_quality, q5_respected,
           q6_supported, q7_hopeful, q8_safe, q9_communication, q10_overall,
           recommendation, comments, is_anonymous, respondent_email
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        RETURNING id`,
         [
           counsellor_id,
           user_id,
@@ -82,7 +83,7 @@ router.post(
       logger.info(`Feedback submitted for counsellor ${counsellor_id}`);
       res.status(201).json({
         message: 'Feedback submitted successfully',
-        feedback_id: (result as any).insertId,
+        feedback_id: result.rows[0].id,
       });
     } catch (err) {
       next(err);
@@ -92,11 +93,11 @@ router.post(
 
 router.get('/my-history', authenticate, async (req: AuthRequest, res, next) => {
   try {
-    const [rows] = await pool.execute(
+    const { rows } = await query(
       `SELECT f.*, c.name AS counsellor_name
        FROM feedback f
        JOIN counsellors c ON f.counsellor_id = c.id
-       WHERE f.user_id = ?
+       WHERE f.user_id = $1
        ORDER BY f.submitted_at DESC`,
       [req.user!.id]
     );

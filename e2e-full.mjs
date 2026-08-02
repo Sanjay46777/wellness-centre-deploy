@@ -111,6 +111,12 @@ r = await api('/api/counsellors', { method: 'POST', headers: { Authorization: `B
 check('student cannot create counsellor 403', r.status === 403, `got ${r.status}`);
 r = await api('/api/counsellors', { method: 'POST', headers: { Authorization: `Bearer ${hcToken}` }, body: JSON.stringify({ name: 'HC Created' }) });
 check('HC can create counsellor 201', r.status === 201, `got ${r.status}`);
+const hcCreatedId = r.body?.counsellor_id;
+
+// Clean up the counsellor created by the HC so the suite is re-runnable
+if (hcCreatedId) {
+  await api(`/api/counsellors/${hcCreatedId}`, { method: 'DELETE', headers: { Authorization: `Bearer ${adminToken}` } });
+}
 
 console.log(`\nRESULT: ${pass} passed, ${fail} failed`);
 results.forEach((l) => console.log(l));

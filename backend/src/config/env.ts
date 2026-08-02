@@ -12,7 +12,6 @@ const envSchema = z.object({
   DB_SSL: z.string().default('false'),
   JWT_SECRET: z.string().min(16).default('change_me_in_production'),
   JWT_EXPIRES_IN: z.string().default('1h'),
-  AUTH_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(5),
   FRONTEND_URL: z.string().default('http://localhost:50000'),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.string().optional(),

@@ -9,5 +9,6 @@ minimumReleaseAgeExclude:
   - miaoda-sc-plugin
   - miaoda-react-devkit
 allowBuilds:
-  core-js: false
   esbuild: true
+overrides:
+  miaoda-react-devkit: workspace:*

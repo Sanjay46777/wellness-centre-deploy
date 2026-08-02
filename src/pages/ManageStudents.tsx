@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { adminApi } from '@/lib/api';
+import { adminApi, getErrorMessage } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
@@ -39,8 +39,8 @@ export function ManageStudents() {
     adminApi.getStudents().then((res) => {
       setStudents(res.students);
       setLoading(false);
-    }).catch((err: any) => {
-      toast({ variant: 'destructive', title: 'Error', description: err?.message });
+    }).catch((err) => {
+      toast({ variant: 'destructive', title: 'Error', description: getErrorMessage(err, 'Could not load students') });
       setLoading(false);
     });
   }, [toast]);
@@ -54,8 +54,8 @@ export function ManageStudents() {
       await adminApi.deleteStudent(id);
       toast({ title: 'Deleted', description: 'Student removed' });
       load();
-    } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Error', description: err?.message });
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Error', description: getErrorMessage(err, 'Delete failed') });
     }
   };
 

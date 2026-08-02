@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, ArrowLeft, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { authApi } from '@/lib/api';
+import { authApi, getErrorMessage } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,8 +29,8 @@ export function ForgotPassword() {
       const res = await authApi.forgotPassword({ email, role });
       setSent(true);
       toast({ title: 'Check your email', description: res.message });
-    } catch (err: any) {
-      setError(err?.message || 'Failed to send reset link');
+    } catch (err) {
+      setError(getErrorMessage(err, 'Failed to send reset link'));
     } finally {
       setLoading(false);
     }

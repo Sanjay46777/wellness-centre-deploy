@@ -9,12 +9,17 @@ import { Loader2 } from 'lucide-react';
 export function StudentHome() {
   const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    feedbackApi.myHistory().then((res) => {
-      setFeedback(res.feedback);
-      setLoading(false);
-    });
+    feedbackApi
+      .myHistory()
+      .then((res) => {
+        setFeedback(res.feedback);
+        setError(null);
+      })
+      .catch(() => setError('Unable to load your feedback history. Please try again.'))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -33,6 +38,8 @@ export function StudentHome() {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-accent" />
             </div>
+          ) : error ? (
+            <p className="py-8 text-center text-destructive">{error}</p>
           ) : feedback.length === 0 ? (
             <p className="py-8 text-center text-muted-foreground">No feedback submitted yet.</p>
           ) : (

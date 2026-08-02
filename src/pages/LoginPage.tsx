@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { authApi } from '@/lib/api';
+import { authApi, getErrorMessage } from '@/lib/api';
 import { useAuthStore } from '@/stores/authStore';
 import { UserRole } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -43,11 +43,11 @@ export function LoginPage() {
       const res = await authApi.login({ ...data, role });
       setAuth(res.user, res.token);
       toast({ title: 'Welcome back', description: `Signed in as ${res.user.full_name}` });
-    } catch (err: any) {
+    } catch (err) {
       toast({
         variant: 'destructive',
         title: 'Sign in failed',
-        description: err?.message || 'Invalid credentials',
+        description: getErrorMessage(err, 'Invalid credentials'),
       });
     } finally {
       setLoading(false);

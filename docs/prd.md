@@ -715,10 +715,8 @@ INSERT INTO feedback (counsellor_id, user_id, q1_comfort, q2_understood, q3_time
 8. Set up monitoring and logging (e.g., PM2, Winston, Sentry)
 
 ### 12.4 CI/CD Pipeline
-- Use GitHub Actions or GitLab CI
-- Automated testing: unit tests, integration tests, E2E tests
-- Automated deployment to staging on merge to `develop` branch
-- Manual approval for production deployment from `main` branch
+- Use GitHub Actions or GitLab CI for automated testing: unit tests, integration tests, E2E tests
+- Deployment configuration is managed separately when ready to publish
 
 ### 12.5 Monitoring
 - Application monitoring: PM2, New Relic, or Datadog
@@ -751,7 +749,7 @@ INSERT INTO feedback (counsellor_id, user_id, q1_comfort, q2_understood, q3_time
 
 ### 13.4 QR Code Generation
 - Each counsellor has unique QR code generated from counsellor_id
-- QR code encodes URL: `http://localhost:50000/feedback?counsellor_id={id}`
+- QR code encodes URL: `{FRONTEND_URL}/feedback?cid={id}` (defaults to `http://localhost:50000/feedback?cid={id}` in local development)
 - Scanning QR code opens feedback form with counsellor pre-selected
 
 ### 13.5 Export Logic

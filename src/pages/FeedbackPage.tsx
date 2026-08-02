@@ -11,13 +11,18 @@ export function FeedbackPage() {
   const [searchParams] = useSearchParams();
   const [counsellors, setCounsellors] = useState<Counsellor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const preselectedId = Number(searchParams.get('cid')) || undefined;
 
   useEffect(() => {
-    counsellorApi.getAll({ active: true }).then((res) => {
-      setCounsellors(res.counsellors);
-      setLoading(false);
-    });
+    counsellorApi
+      .getAll({ active: true })
+      .then((res) => {
+        setCounsellors(res.counsellors);
+        setError(null);
+      })
+      .catch(() => setError('Unable to load counsellors. Please try again.'))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -43,6 +48,8 @@ export function FeedbackPage() {
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-6 w-6 animate-spin text-accent" />
               </div>
+            ) : error ? (
+              <p className="py-8 text-center text-destructive">{error}</p>
             ) : (
               <FeedbackForm
                 counsellors={counsellors}

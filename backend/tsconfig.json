@@ -14,7 +14,7 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "types": ["node", "express", "cors", "bcryptjs", "jsonwebtoken", "cookie-parser", "nodemailer"]
+    "types": ["node", "express", "cors", "bcryptjs", "jsonwebtoken", "cookie-parser", "nodemailer", "pg"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

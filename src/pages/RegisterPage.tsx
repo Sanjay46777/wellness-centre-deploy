@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { authApi } from '@/lib/api';
+import { authApi, getErrorMessage } from '@/lib/api';
 import { UserRole } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,11 +47,11 @@ export function RegisterPage() {
           : await authApi.registerHead(data);
       toast({ title: 'Success', description: res.message });
       navigate('/login?role=' + role);
-    } catch (err: any) {
+    } catch (err) {
       toast({
         variant: 'destructive',
         title: 'Registration failed',
-        description: err?.message || 'Something went wrong',
+        description: getErrorMessage(err, 'Something went wrong'),
       });
     } finally {
       setLoading(false);

@@ -8,8 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { feedbackApi } from '@/lib/api';
+import { feedbackApi, getErrorMessage } from '@/lib/api';
 
 const feedbackSchema = z.object({
   counsellor_id: z.number().int().min(1, 'Select a counsellor'),
@@ -52,11 +54,12 @@ export function FeedbackForm({ counsellors, preselectedCounsellorId, onSuccess }
     defaultValues: {
       counsellor_id: preselectedCounsellorId || 0,
       recommendation: 'Yes',
-      is_anonymous: false,
+      is_anonymous: true,
     },
   });
 
   const selectedCounsellorId = watch('counsellor_id');
+  const isAnonymous = watch('is_anonymous');
 
   const onSubmit = async (data: FeedbackFormData) => {
     setSubmitting(true);
@@ -65,11 +68,11 @@ export function FeedbackForm({ counsellors, preselectedCounsellorId, onSuccess }
       toast({ title: 'Thank you', description: 'Your feedback has been submitted.' });
       reset();
       onSuccess?.();
-    } catch (err: any) {
+    } catch (err) {
       toast({
         variant: 'destructive',
         title: 'Submission failed',
-        description: err?.message || 'Something went wrong.',
+        description: getErrorMessage(err, 'Something went wrong.'),
       });
     } finally {
       setSubmitting(false);
@@ -112,6 +115,52 @@ export function FeedbackForm({ counsellors, preselectedCounsellorId, onSuccess }
             />
           );
         })}
+      </div>
+
+      <div className="space-y-2">
+        <Label>Would you recommend this counsellor?</Label>
+        <Select
+          value={watch('recommendation')}
+          onValueChange={(v) => setValue('recommendation', v as 'Yes' | 'No' | 'Maybe', { shouldValidate: true })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select an option" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Yes">Yes</SelectItem>
+            <SelectItem value="No">No</SelectItem>
+            <SelectItem value="Maybe">Maybe</SelectItem>
+          </SelectContent>
+        </Select>
+        {errors.recommendation && <p className="text-sm text-destructive">{errors.recommendation.message}</p>}
+      </div>
+
+      <div className="space-y-4 rounded-lg border p-4">
+        <div className="flex items-start gap-3">
+          <Checkbox
+            id="is_anonymous"
+            checked={isAnonymous}
+            onCheckedChange={(checked) => setValue('is_anonymous', !!checked, { shouldValidate: true })}
+          />
+          <div>
+            <Label htmlFor="is_anonymous" className="font-medium">Submit anonymously</Label>
+            <p className="text-sm text-muted-foreground">Your identity will be hidden from the counsellor.</p>
+          </div>
+        </div>
+        {!isAnonymous && (
+          <div className="space-y-2">
+            <Label htmlFor="respondent_email">Email (optional)</Label>
+            <Input
+              id="respondent_email"
+              type="email"
+              placeholder="student@institution.edu"
+              {...register('respondent_email')}
+            />
+            {errors.respondent_email && (
+              <p className="text-sm text-destructive">{errors.respondent_email.message}</p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">

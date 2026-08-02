@@ -1,12 +1,12 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { pool } from '../config/db';
+import { query } from '../config/db';
 import { validateQuery } from '../middleware/validate';
 import { requireAuthAndRole } from '../middleware/auth';
 import { exportPPT, exportPDF, exportExcel } from '../services/export';
 
-const router: ReturnType<typeof Router> = Router();
+const router: Router = Router();
 
 const querySchema = z.object({
   format: z.enum(['ppt', 'pdf', 'excel']),
@@ -50,7 +50,7 @@ router.get(
       params.push(...dateFilter.params);
       if (team) params.push(team);
 
-      const [rows] = await pool.execute(
+      const { rows } = await query(
         `SELECT f.*, c.name as counsellor_name, u.student_id, u.full_name as student_name, u.email as student_email
          FROM feedback f
          JOIN counsellors c ON f.counsellor_id = c.id

@@ -1,153 +1,199 @@
 # Wellness Centre — Web Application
 
-A modern, responsive web application for the IIT Madras Wellness Centre. It replaces the previous Android app with a professional web experience for collecting student feedback, managing counsellors, and analyzing session outcomes.
+A modern, responsive web application for the IIT Madras Wellness Centre. It replaces the previous Android app with a professional web experience for collecting student feedback, managing counsellors, and analyzing session outcomes. Runs entirely on **free-tier** services.
 
 ## Features
 
 - Role-based access: students, head counsellors, and admins.
-- Student feedback form with a 10-question rating scale, recommendation, and comments.
+- Student feedback form with 10-question rating scale, recommendation, and optional anonymity.
 - QR-code generation linking directly to a counsellor's feedback form.
 - Institution and per-counsellor analytics dashboards.
 - Counsellor management (create, edit, activate/deactivate) for admins.
 - Pending head-counsellor registration approvals.
 - Export reports as PPT, PDF, or Excel.
 - Responsive design with light/dark mode support.
-- Production-safe API: JWT auth, input validation, rate limiting, parameterized SQL, connection pooling.
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18 + TypeScript + Vite 5 |
+| Frontend | React 18 + TypeScript + Vite |
 | Styling | Tailwind CSS + shadcn/ui |
-| Charts / Export | Recharts, jsPDF, pptxgenjs, SheetJS |
-| State / Forms | Zustand, React Hook Form + Zod |
-| Backend | Node.js + Express (TypeScript) |
-| Database | MySQL 8+ (`mysql2` with pooling) |
-| Auth | JWT + bcryptjs |
-| Validation | Zod (request body/query schemas) |
-| Security | helmet, CORS (env-controlled), express-rate-limit |
+| Backend | Node.js + Express |
+| Database | MySQL 8 (mysql2 pooled connections) |
+| Auth | JWT + bcryptjs, role-based access control |
+| Validation | Zod (request body + query) |
+| Charts / Animation | Recharts, Framer Motion |
+| State | Zustand |
+| API | RESTful JSON |
 
 ## Project Structure
 
 ```
 wellness-centre-project
-├── backend/                 # Express REST API (TypeScript)
+├── backend/                  # Express REST API
 │   ├── src/
-│   │   ├── config/          # env schema (Zod) + DB connection pool
-│   │   ├── middleware/      # auth + role guard, validation, error handler
-│   │   ├── routes/          # auth, counsellors, feedback, admin, analytics, exports, qr
-│   │   ├── services/        # analytics, email, export logic
-│   │   ├── utils/           # logger
-│   │   └── index.ts         # server entry point
-│   └── scripts/             # migrate.ts, seed.ts
-├── database/                # schema.sql, seed.sql, full DB export
-├── src/                     # React frontend
-│   ├── app/                 # app entry and router
-│   ├── components/          # UI components and layouts
-│   ├── lib/                 # API client, analytics, export helpers
-│   ├── pages/               # page-level route components
-│   ├── stores/              # Zustand state stores
-│   └── types/               # TypeScript types
-├── docs/                    # PRD, API, design, installation, deployment, ADRs
-├── docker-compose.yml       # Local MySQL container (optional)
-└── e2e-test.mjs / e2e-full.mjs  # API end-to-end test scripts
+│   │   ├── config/           # Env schema + MySQL connection pool
+│   │   ├── middleware/       # Auth (JWT/RBAC), validation, error handling
+│   │   ├── routes/           # auth, counsellors, feedback, analytics, admin, exports, qr
+│   │   ├── services/         # Analytics and export logic
+│   │   ├── scripts/          # migrate.ts, seed.ts
+│   │   └── index.ts          # Server entry point
+│   └── package.json
+├── database/
+│   ├── schema.sql            # MySQL schema (auto-loaded by Docker)
+│   └── seed.sql              # Sample data (auto-loaded by Docker)
+├── src/                      # React frontend
+│   ├── components/           # UI components, layouts, charts
+│   ├── lib/                  # API client, export helpers, utilities
+│   ├── pages/                # Route-level components (lazy loaded)
+│   ├── stores/               # Zustand stores
+│   └── types/                # TypeScript types
+├── mobile/                   # React Native companion app
+├── docs/                     # PRD, API docs, ADRs
+├── docker-compose.yml        # Local MySQL 8 setup
+├── render.yaml               # Backend deployment blueprint (Render, free tier)
+└── vercel.json               # Frontend deployment config (Vercel, free tier)
 ```
 
-## Quick Start
+## Database (MySQL)
 
-### Prerequisites
+You have two options. Both are free.
 
-- Node.js 20+ and pnpm
-- MySQL 8+ server running locally on port `3306`
+### Option A — Aiven free MySQL (cloud, recommended)
 
-### 1. Install dependencies
+[Aiven](https://aiven.io/free-mysql-database) offers a **free forever** managed MySQL 8 service — no trial, no expiry, no credit card required. It includes a **web console** where you can watch your tables, run SQL, and see feedback submissions appear in real time as the app writes them.
 
-```bash
-pnpm install
+1. Create a free account (GitHub/Google sign-in is fine).
+2. Create a new **MySQL** service — choose the **Free (Hobbyist)** plan (`free-1-5gb`).
+3. Copy the connection details from the **Overview** tab (host, port, user, password, database name).
+4. In the **Connection info** panel the SSL certificate/ca is bundled with the host; enable `DB_SSL=true` below.
+
+```env
+DB_HOST=wellness-centre-xxxx.aivencloud.com
+DB_PORT=24143
+DB_USER=avnadmin
+DB_PASSWORD=<your-password>
+DB_NAME=defaultdb
+DB_SSL=true
 ```
 
-### 2. Configure environment
+### Option B — Local Docker MySQL (recommended for development)
 
 ```bash
-cp .env.example .env
-```
-
-Set your MySQL credentials and a strong `JWT_SECRET` (16+ chars). Defaults assume a local root user.
-
-### 3. Prepare the database
-
-Create the database locally or use Docker Compose:
-
-Option A: Docker Compose
-
-```bash
-cp .env.example .env
 docker-compose up -d
 ```
 
-Option B: Local MySQL
+This starts MySQL 8 on `localhost:3306` (root password `password`, database `wellness_centre`) and automatically applies `database/schema.sql` and `database/seed.sql`.
 
-```bash
-mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS wellness_centre CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-```
-
-### 4. Migrate and seed
+For any MySQL server, create the schema and seed manually with:
 
 ```bash
 pnpm run migrate
 pnpm run seed
 ```
 
-### 5. Start the app
+> The backend refuses to start if it cannot connect to MySQL, so ensure the database is up before `dev:backend`.
+
+## Quick Start
+
+1. **Install dependencies**
+
+```bash
+pnpm install
+```
+
+2. **Configure environment**
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your database credentials and JWT secret. See [Environment Variables](#environment-variables).
+
+3. **Start the database** (Docker or Aiven — see above)
+
+4. **Start the backend**
+
+```bash
+pnpm run dev:backend
+```
+
+5. **Start the frontend**
 
 ```bash
 pnpm run dev
 ```
 
-`pnpm run dev` starts the backend (port `3001`) and the frontend (port `50000`) together. Open `http://localhost:50000`.
+The frontend runs at `http://localhost:50000` (Vite proxies `/api` to `http://localhost:3001`), backend at `http://localhost:3001/api`.
 
 ## Environment Variables
 
-All variables are defined in `.env.example`.
+All configuration is read from `.env` (see `.env.example`).
 
-| Variable | Default | Description |
+### Backend
+
+| Variable | Description | Default |
 |---|---|---|
-| `PORT` | `3001` | Backend API port |
-| `NODE_ENV` | `development` | `development`, `production`, or `test` |
-| `DB_HOST` | `localhost` | MySQL host |
-| `DB_PORT` | `3306` | MySQL port |
-| `DB_USER` | `root` | MySQL user |
-| `DB_PASSWORD` | *(empty)* | MySQL password |
-| `DB_NAME` | `wellness_centre` | Database name |
-| `DB_SSL` | `false` | Set `true` when the DB requires SSL (e.g. managed cloud MySQL) |
-| `JWT_SECRET` | *(required)* | Signing secret, 16+ characters |
-| `JWT_EXPIRES_IN` | `1h` | Token lifetime |
-| `AUTH_RATE_LIMIT_MAX` | `5` | Max auth requests per minute per IP |
-| `FRONTEND_URL` | `http://localhost:50000` | Allowed CORS origin + QR feedback URL base |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | *(optional)* | Email delivery for password resets; omitted = reset links are logged |
-| `VITE_API_BASE_URL` | `http://localhost:3001/api` | Frontend → backend base URL (baked in at build time) |
+| `PORT` | API port | `3001` |
+| `NODE_ENV` | `development` / `production` / `test` | `development` |
+| `DB_HOST` | MySQL host | `localhost` |
+| `DB_PORT` | MySQL port | `3306` |
+| `DB_USER` | MySQL user | `root` |
+| `DB_PASSWORD` | MySQL password | *(empty)* |
+| `DB_NAME` | MySQL database name | `wellness_centre` |
+| `DB_SSL` | `true` for cloud MySQL (Aiven requires it) | `false` |
+| `JWT_SECRET` | Secret used to sign JWT tokens (min 16 chars) | `change_me_in_production` |
+| `JWT_EXPIRES_IN` | Token lifetime, e.g. `1h` | `1h` |
+| `FRONTEND_URL` | Allowed CORS origin for the frontend | `http://localhost:50000` |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Optional SMTP for password-reset emails; reset links are logged to the console if unset | *(empty)* |
+
+### Frontend
+
+| Variable | Description | Default |
+|---|---|---|
+| `VITE_API_BASE_URL` | Public base URL of the backend API. In production this is your Render backend URL, e.g. `https://your-app.onrender.com/api` | `http://localhost:3001/api` |
+
+> `VITE_*` variables are inlined at **build time** — set them in your hosting platform before `pnpm run build`.
+
+## Deployment (100% free tier)
+
+### Database
+
+- Use the **Aiven free MySQL** plan (Option A above). It is persistent, has automatic backups, and never expires.
+
+### Backend — Render (free web service)
+
+1. Push this repository to GitHub.
+2. On [Render](https://render.com), click **New → Blueprint** and select the repo. `render.yaml` is detected automatically (free plan).
+3. Render builds the backend (`pnpm install && tsc -p backend/tsconfig.json`), runs the DB migration on deploy (`preDeployCommand`), and starts it.
+4. Fill in the secret env vars Render asks for: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SSL=true`. Optionally configure SMTP.
+5. Note: the free web service **spins down after ~15 min of inactivity** and wakes on the next request (a few seconds delay). This is expected on the free tier.
+
+### Frontend — Vercel (free Hobby plan)
+
+1. Import the repo into [Vercel](https://vercel.com). `vercel.json` is auto-detected (build command, `dist/` output, SPA rewrites).
+2. Set the environment variable `VITE_API_BASE_URL=https://<your-render-backend>.onrender.com/api`.
+3. Deploy. The frontend gets a `.vercel.app` URL automatically.
+
+### Post-deploy
+
+- Set the Render service's `FRONTEND_URL` to your Vercel URL (it is `https://wellness-centre-web.vercel.app` in `render.yaml` — update if you use a different project name).
+- Watch your data live: the Aiven console shows every new feedback row the moment it is submitted.
 
 ## Available Scripts
 
 | Command | Description |
 |---|---|
-| `pnpm run dev` | Start frontend (Vite) + backend (tsx watch) together |
-| `pnpm run dev:frontend` | Start only the Vite dev server |
-| `pnpm run dev:backend` | Start only the backend with hot reload |
-| `pnpm run build` | Type-check and build the frontend to `dist/` |
-| `pnpm run build:backend` | Compile the backend to `backend/dist/` |
-| `pnpm run start:backend` | Run the compiled backend |
-| `pnpm run lint` | ESLint on the frontend code |
-| `pnpm run migrate` | Apply the schema (see `database/schema.sql`) |
-| `pnpm run seed` | Insert demo users + counsellors (see `database/seed.sql`) |
-| `pnpm run ci` | Run the GitHub Actions CI locally via `act` or inspect `.github/workflows/ci.yml` |
-
-## Continuous Integration
-
-A GitHub Actions workflow is included at `.github/workflows/ci.yml` to build and validate the project automatically on each push or pull request to `main`/`master`.
-
-This ensures that frontend and backend code remain deployable and that database-related changes are checked before merging.
+| `pnpm run dev` | Start the frontend and backend together |
+| `pnpm run dev:frontend` | Start the Vite dev server only |
+| `pnpm run dev:backend` | Start the Express backend with hot reload |
+| `pnpm run build` | Type-check and build the frontend |
+| `pnpm run build:backend` | Compile the backend TypeScript |
+| `pnpm run start:backend` | Run the compiled backend (`backend/dist/index.js`) |
+| `pnpm run lint` | Run ESLint (frontend + backend) |
+| `pnpm run migrate` | Apply the MySQL schema |
+| `pnpm run seed` | Seed the database with sample data |
 
 ## Demo Credentials
 
@@ -159,33 +205,18 @@ This ensures that frontend and backend code remain deployable and that database-
 
 ## Security
 
-- All SQL is executed with prepared statements (`pool.execute` with `?` placeholders) — no string interpolation.
-- Passwords are hashed with bcryptjs.
-- JWT auth with per-route role guards (`admin`, `head_counsellor`, `student`).
-- Request bodies/queries validated against Zod schemas before touching the DB.
-- Rate limiting on auth endpoints, helmet headers, and CORS restricted to `FRONTEND_URL`.
-- `.env` is gitignored; never commit secrets.
-
-## Testing
-
-Run the API end-to-end suites against a running backend:
-
-```bash
-node e2e-test.mjs     # core flows (auth, feedback, analytics, 401s)
-node e2e-full.mjs     # extended coverage
-```
-
-## Deployment (free tier)
-
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for a step-by-step, zero-cost production deployment (Vercel/Netlify for the frontend, Render free tier for the API, and a free managed MySQL instance).
+- Parameterized SQL queries throughout (no string-concatenated SQL).
+- Zod validation on every request body and query.
+- JWT authentication with role-based access control middleware.
+- bcrypt password hashing; rate limiting on auth/login in production.
+- Helmet security headers; strict CORS origin; `DB_SSL` for cloud connections.
+- Sensitive values (secrets, DB credentials) live only in environment variables — never in code.
 
 ## Documentation
 
 - [Product Requirements Document](docs/prd.md)
 - [API Documentation](docs/API.md)
-- [Design System](docs/DESIGN.md)
 - [Installation Guide](docs/INSTALLATION.md)
-- [Deployment Guide (free tier)](docs/DEPLOYMENT.md)
 - [Architecture Decision Records](docs/decisions/)
 
 ## License

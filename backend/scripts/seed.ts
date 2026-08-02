@@ -7,22 +7,27 @@ import { logger } from '../src/utils/logger';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function seed() {
-  const seedPath = path.resolve(__dirname, '../../database/seed.sql');
-  const raw = await fs.readFile(seedPath, 'utf-8');
-  const sql = raw
-    .split('\n')
-    .filter((line) => !line.trim().startsWith('--'))
-    .join('\n');
-  const statements = sql
-    .split(';')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
+  const client = await pool.connect();
+  try {
+    const existing = await client.query('SELECT COUNT(*)::int AS count FROM users');
+    if (existing.rows[0].count > 0) {
+      logger.info('Database already seeded, skipping');
+      process.exit(0);
+    }
 
-  const connection = await pool.getConnection();
-  for (const statement of statements) {
-    await connection.query(statement + ';');
+    const seedPath = path.resolve(__dirname, '../../database/seed.sql');
+    const sql = await fs.readFile(seedPath, 'utf-8');
+    const statements = sql
+      .split(';')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && !s.startsWith('--') && !s.startsWith('NOTE'));
+
+    for (const statement of statements) {
+      await client.query(statement);
+    }
+  } finally {
+    client.release();
   }
-  connection.release();
   logger.info('Database seeded successfully');
   process.exit(0);
 }

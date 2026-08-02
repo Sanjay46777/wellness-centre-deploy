@@ -1,12 +1,10 @@
 -- Seed data for Wellness Centre
 
-USE wellness_centre;
-
--- Demo accounts (passwords match the README)
+-- Admin, head counsellor, and demo student accounts (passwords match the README)
 INSERT INTO users (email, password_hash, full_name, role, phone, student_id, status, email_verified)
 VALUES
-  ('wellness1@smail.iitm.ac.in', '$2b$10$e7w../1t3EnrOSWXlH45FeLhvSkJuxYeuZBTRyk7ZHLwV.1T3cPaq', 'Saranraj R', 'admin', '9876543210', NULL, 'approved', true),
-  ('wo@smail.iitm.ac.in', '$2b$10$JxGFvAwVUlMT26pK48Ipjeo44lrB8zcom1cu8ZOvszTS7.Apd7Nae', 'Colonel R Balaji', 'head_counsellor', '9876543210', NULL, 'approved', true),
+  ('wellness1@smail.iitm.ac.in', '$2a$10$3QtTCQFd6FRnfE5hjZrWheNVZvjRlmMgprH3ORS3dRs.pvzi1kOs.', 'Saranraj R', 'admin', '9876543210', NULL, 'approved', true),
+  ('wo@smail.iitm.ac.in', '$2a$10$mYdxEjAd9aaHcTugUwGGwOgHEF2QzW.4Jop6MpFbgrMSCqRl4JETC', 'Colonel R Balaji', 'head_counsellor', '9876543210', NULL, 'approved', true),
   ('student-demo@wellness.local', '$2b$10$OziR6TguyqEO1Szazfx2zu4uwQTz5LxDgcn7x6QbL4cU18dYJ.aeu', 'Demo Student', 'student', '9876543211', 'CS21S001', 'approved', true);
 
 -- Counselling team

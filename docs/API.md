@@ -1,6 +1,6 @@
 # Wellness Centre API Documentation
 
-Base URL: `http://localhost:3001` (or the configured `VITE_API_BASE_URL`).
+Base URL: `http://localhost:3001/api` (or the configured `VITE_API_BASE_URL`).
 
 All timestamps are ISO 8601 strings. The API uses JSON request/response bodies and Bearer token authentication for protected endpoints.
 

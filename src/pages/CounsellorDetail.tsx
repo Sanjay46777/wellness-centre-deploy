@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { DateRange, Counsellor, AnalyticsSummary, Feedback } from '@/types';
-import { analyticsApi } from '@/lib/api';
+import { analyticsApi, getErrorMessage } from '@/lib/api';
 import { MetricCard } from '@/components/analytics/MetricCard';
 import { DateRangeFilter } from '@/components/analytics/DateRangeFilter';
 import { ExportToolbar } from '@/components/analytics/ExportToolbar';
@@ -44,8 +44,8 @@ export function CounsellorDetail() {
         });
         setFeedback(res.feedback);
       })
-      .catch((err: any) => {
-        toast({ variant: 'destructive', title: 'Error', description: err?.message });
+      .catch((err) => {
+        toast({ variant: 'destructive', title: 'Error', description: getErrorMessage(err, 'Could not load analytics') });
       })
       .finally(() => setLoading(false));
   }, [id, range, start, end, toast]);
@@ -63,8 +63,8 @@ export function CounsellorDetail() {
         const { exportExcel } = await import('@/lib/export-excel');
         exportExcel(feedback, counsellor);
       }
-    } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Export failed', description: err?.message });
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Export failed', description: getErrorMessage(err, 'Export failed') });
     }
   };
 

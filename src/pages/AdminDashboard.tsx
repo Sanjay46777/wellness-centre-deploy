@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { DateRange, AnalyticsSummary, LeaderboardEntry } from '@/types';
-import { analyticsApi } from '@/lib/api';
+import { analyticsApi, getErrorMessage } from '@/lib/api';
 import { MetricCard } from '@/components/analytics/MetricCard';
 import { DateRangeFilter } from '@/components/analytics/DateRangeFilter';
 import { ExportToolbar } from '@/components/analytics/ExportToolbar';
@@ -42,8 +42,8 @@ export function AdminDashboard() {
         setStats(s);
         setLeaderboard(l.leaderboard);
       })
-      .catch((err: any) => {
-        toast({ variant: 'destructive', title: 'Error', description: err?.message });
+      .catch((err) => {
+        toast({ variant: 'destructive', title: 'Error', description: getErrorMessage(err, 'Could not load analytics') });
       })
       .finally(() => setLoading(false));
   }, [range, start, end, team, toast]);
@@ -61,8 +61,8 @@ export function AdminDashboard() {
         const { exportExcel } = await import('@/lib/export-excel');
         exportExcel(stats.feedback || []);
       }
-    } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Export failed', description: err?.message });
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Export failed', description: getErrorMessage(err, 'Export failed') });
     }
   };
 

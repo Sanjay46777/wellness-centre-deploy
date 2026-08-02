@@ -1,19 +1,18 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { randomBytes } from 'crypto';
-import { pool } from '../config/db';
+import { query } from '../config/db';
 import { env } from '../config/env';
 import { AppError } from '../middleware/errorHandler';
-import { authenticate } from '../middleware/auth';
 import { validateBody } from '../middleware/validate';
 import { logger } from '../utils/logger';
 import { sendEmail, getResetUrl } from '../services/email';
 import { UserRole, UserStatus } from '../types';
 
-const router: ReturnType<typeof Router> = Router();
+const router: Router = Router();
 
 const registerStudentSchema = z.object({
   email: z.string().email(),
@@ -60,20 +59,21 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { email, password, full_name, student_id, phone } = req.body;
-      const [existing] = await pool.execute(
-        'SELECT id FROM users WHERE email = ?',
+      const { rows: existing } = await query(
+        'SELECT id FROM users WHERE email = $1',
         [email]
       );
-      if (Array.isArray(existing) && existing.length > 0) {
+      if (existing.length > 0) {
         throw new AppError(409, 'Email already registered');
       }
       const hash = await bcrypt.hash(password, 10);
-      const [result] = await pool.execute(
+      const result = await query(
         `INSERT INTO users (email, password_hash, full_name, role, student_id, phone, email_verified, status)
-         VALUES (?, ?, ?, ?, ?, ?, true, 'approved')`,
+         VALUES ($1, $2, $3, $4, $5, $6, true, 'approved')
+         RETURNING id`,
         [email, hash, full_name, 'student', student_id, phone || null]
       );
-      const insertId = (result as any).insertId;
+      const insertId = result.rows[0].id;
       logger.info(`Student registered: ${email}`);
       res.status(201).json({
         message: 'Registration successful. You can now sign in.',
@@ -91,20 +91,21 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { email, password, full_name, phone } = req.body;
-      const [existing] = await pool.execute(
-        'SELECT id FROM users WHERE email = ?',
+      const { rows: existing } = await query(
+        'SELECT id FROM users WHERE email = $1',
         [email]
       );
-      if (Array.isArray(existing) && existing.length > 0) {
+      if (existing.length > 0) {
         throw new AppError(409, 'Email already registered');
       }
       const hash = await bcrypt.hash(password, 10);
-      const [result] = await pool.execute(
+      const result = await query(
         `INSERT INTO users (email, password_hash, full_name, role, phone, email_verified, status)
-         VALUES (?, ?, ?, ?, ?, true, 'pending')`,
+         VALUES ($1, $2, $3, $4, $5, true, 'pending')
+         RETURNING id`,
         [email, hash, full_name, 'head_counsellor', phone || null]
       );
-      const insertId = (result as any).insertId;
+      const insertId = result.rows[0].id;
       logger.info(`Head counsellor registered: ${email}`);
       res.status(201).json({
         message: 'Registration submitted. Please wait for admin approval.',
@@ -120,8 +121,8 @@ router.post(
 router.post('/login', validateBody(loginSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password, role } = req.body;
-    const [rows] = await pool.execute(
-      'SELECT id, email, password_hash, full_name, role, status, email_verified FROM users WHERE email = ? AND role = ?',
+    const { rows } = await query(
+      'SELECT id, email, password_hash, full_name, role, status, email_verified FROM users WHERE email = $1 AND role = $2',
       [email, role]
     );
     const users = rows as any[];
@@ -165,8 +166,8 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { email, role } = req.body;
-      const [rows] = await pool.execute(
-        'SELECT id, email, full_name FROM users WHERE email = ? AND role = ?',
+      const { rows } = await query(
+        'SELECT id, email, full_name FROM users WHERE email = $1 AND role = $2',
         [email, role]
       );
       const users = rows as any[];
@@ -178,8 +179,8 @@ router.post(
       const user = users[0];
       const token = randomBytes(32).toString('hex');
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
-      await pool.execute(
-        'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES (?, ?, ?)',
+      await query(
+        'INSERT INTO password_reset_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)',
         [user.id, token, expiresAt]
       );
       const resetUrl = getResetUrl(token);
@@ -205,10 +206,10 @@ router.post(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { token, password } = req.body;
-      const [rows] = await pool.execute(
+      const { rows } = await query(
         `SELECT t.id, t.user_id, t.expires_at, t.used_at
          FROM password_reset_tokens t
-         WHERE t.token = ?`,
+         WHERE t.token = $1`,
         [token]
       );
       const tokens = rows as any[];
@@ -223,8 +224,8 @@ router.post(
         throw new AppError(400, 'Token has expired');
       }
       const hash = await bcrypt.hash(password, 10);
-      await pool.execute('UPDATE users SET password_hash = ? WHERE id = ?', [hash, record.user_id]);
-      await pool.execute('UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = ?', [
+      await query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, record.user_id]);
+      await query('UPDATE password_reset_tokens SET used_at = CURRENT_TIMESTAMP WHERE id = $1', [
         record.id,
       ]);
       logger.info(`Password reset completed: user ${record.user_id}`);
@@ -235,12 +236,21 @@ router.post(
   }
 );
 
-router.get('/me', authenticate, async (req: Request, res: Response, next: NextFunction) => {
+router.get('/me', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const userId = (req as any).user?.id as number;
-    const [rows] = await pool.execute(
-      'SELECT id, email, full_name, role, student_id, phone, status FROM users WHERE id = ?',
-      [userId]
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new AppError(401, 'Unauthorized');
+    }
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, env.JWT_SECRET) as {
+      id: number;
+      email: string;
+      role: UserRole;
+    };
+    const { rows } = await query(
+      'SELECT id, email, full_name, role, student_id, phone, status FROM users WHERE id = $1',
+      [decoded.id]
     );
     const users = rows as any[];
     if (users.length === 0) {

@@ -1,20 +1,20 @@
-﻿import { Router } from 'express';
+import { Router } from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
-import { pool } from '../config/db';
+import { query } from '../config/db';
 import { AppError } from '../middleware/errorHandler';
 import { validateBody } from '../middleware/validate';
 import { requireAuthAndRole } from '../middleware/auth';
 import { logger } from '../utils/logger';
 
-const router: ReturnType<typeof Router> = Router();
+const router: Router = Router();
 
 router.get(
   '/pending-registrations',
   requireAuthAndRole('admin'),
   async (_req: Request, res: Response, next: NextFunction) => {
     try {
-      const [rows] = await pool.execute(
+      const { rows } = await query(
         `SELECT id, email, full_name, phone, role, created_at
          FROM users
          WHERE role = 'head_counsellor' AND status = 'pending'
@@ -36,11 +36,11 @@ router.post(
   requireAuthAndRole('admin'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const [result] = await pool.execute(
-        "UPDATE users SET status = 'approved' WHERE id = ? AND role = 'head_counsellor' AND status = 'pending'",
+      const result = await query(
+        "UPDATE users SET status = 'approved' WHERE id = $1 AND role = 'head_counsellor' AND status = 'pending'",
         [req.params.userId]
       );
-      if ((result as any).affectedRows === 0) {
+      if (result.rowCount === 0) {
         throw new AppError(404, 'Pending registration not found');
       }
       logger.info(`Head counsellor approved: ${req.params.userId}`);
@@ -57,11 +57,11 @@ router.post(
   validateBody(actionSchema),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const [result] = await pool.execute(
-        "UPDATE users SET status = 'rejected' WHERE id = ? AND role = 'head_counsellor' AND status = 'pending'",
+      const result = await query(
+        "UPDATE users SET status = 'rejected' WHERE id = $1 AND role = 'head_counsellor' AND status = 'pending'",
         [req.params.userId]
       );
-      if ((result as any).affectedRows === 0) {
+      if (result.rowCount === 0) {
         throw new AppError(404, 'Pending registration not found');
       }
       logger.info(`Head counsellor rejected: ${req.params.userId}`);
@@ -77,7 +77,7 @@ router.get(
   requireAuthAndRole('admin', 'head_counsellor'),
   async (_req: Request, res: Response, next: NextFunction) => {
     try {
-      const [rows] = await pool.execute(
+      const { rows } = await query(
         `SELECT id, email, full_name, student_id, phone, created_at
          FROM users
          WHERE role = 'student'
@@ -95,11 +95,11 @@ router.delete(
   requireAuthAndRole('admin', 'head_counsellor'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const [result] = await pool.execute(
-        'DELETE FROM users WHERE id = ? AND role = ?',
+      const result = await query(
+        'DELETE FROM users WHERE id = $1 AND role = $2',
         [req.params.userId, 'student']
       );
-      if ((result as any).affectedRows === 0) {
+      if (result.rowCount === 0) {
         throw new AppError(404, 'Student not found');
       }
       logger.info(`Student deleted: ${req.params.userId}`);

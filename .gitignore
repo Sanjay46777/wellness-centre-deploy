@@ -26,6 +26,13 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
+# app logs
+logs/
+*.log
+backend-server.err.log
+frontend.err.log
+prod-test.err.log
+
 # macOS
 .DS_Store
 *.pem
@@ -33,7 +40,9 @@ yarn-error.*
 # local env files
 .env
 .env*.local
-*.log
+
+# deployment platform metadata
+.vercel/
 
 # typescript
 *.tsbuildinfo
@@ -57,3 +66,5 @@ history/*.json
 /tasks
 package.json.[0-9]*
 .native-wind-cache
+
+.vercel

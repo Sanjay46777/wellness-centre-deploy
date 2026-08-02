@@ -1,81 +1,80 @@
--- Wellness Centre Feedback Platform — MySQL Schema
-
-CREATE DATABASE IF NOT EXISTS wellness_centre
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
-USE wellness_centre;
+-- Wellness Centre Feedback Platform — PostgreSQL Schema
 
 -- Users: students, head counsellors, and admins
-CREATE TABLE users (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS users (
+  id SERIAL PRIMARY KEY,
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
   full_name VARCHAR(255) NOT NULL,
-  role ENUM('student', 'head_counsellor', 'admin') NOT NULL,
+  role VARCHAR(20) NOT NULL CHECK (role IN ('student', 'head_counsellor', 'admin')),
   student_id VARCHAR(100) DEFAULT NULL,
   phone VARCHAR(20) DEFAULT NULL,
   email_verified BOOLEAN DEFAULT FALSE,
-  status ENUM('pending', 'approved', 'rejected') DEFAULT 'approved',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_email (email),
-  INDEX idx_role (role),
-  INDEX idx_status (status)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  status VARCHAR(20) DEFAULT 'approved' CHECK (status IN ('pending', 'approved', 'rejected')),
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT uq_users_email UNIQUE (email)
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users (email);
+CREATE INDEX IF NOT EXISTS idx_users_role ON users (role);
+CREATE INDEX IF NOT EXISTS idx_users_status ON users (status);
 
 -- Counsellors / Psychologists
-CREATE TABLE counsellors (
-  id INT AUTO_INCREMENT PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS counsellors (
+  id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   designation VARCHAR(255) DEFAULT NULL,
   team VARCHAR(100) DEFAULT NULL,
   specialization VARCHAR(255) DEFAULT NULL,
   email VARCHAR(255) DEFAULT NULL,
   is_active BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  INDEX idx_active (is_active),
-  INDEX idx_designation (designation),
-  INDEX idx_team (team)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_counsellors_active ON counsellors (is_active);
+CREATE INDEX IF NOT EXISTS idx_counsellors_designation ON counsellors (designation);
+CREATE INDEX IF NOT EXISTS idx_counsellors_team ON counsellors (team);
 
 -- Feedback submissions
-CREATE TABLE feedback (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  counsellor_id INT NOT NULL,
-  user_id INT DEFAULT NULL,
-  q1_comfort INT CHECK (q1_comfort BETWEEN 1 AND 5),
-  q2_understood INT CHECK (q2_understood BETWEEN 1 AND 5),
-  q3_time INT CHECK (q3_time BETWEEN 1 AND 5),
-  q4_quality INT CHECK (q4_quality BETWEEN 1 AND 5),
-  q5_respected INT CHECK (q5_respected BETWEEN 1 AND 5),
-  q6_supported INT CHECK (q6_supported BETWEEN 1 AND 5),
-  q7_hopeful INT CHECK (q7_hopeful BETWEEN 1 AND 5),
-  q8_safe INT CHECK (q8_safe BETWEEN 1 AND 5),
-  q9_communication INT CHECK (q9_communication BETWEEN 1 AND 5),
-  q10_overall INT CHECK (q10_overall BETWEEN 1 AND 5),
-  recommendation ENUM('Yes', 'No', 'Maybe'),
+CREATE TABLE IF NOT EXISTS feedback (
+  id SERIAL PRIMARY KEY,
+  counsellor_id INTEGER NOT NULL,
+  user_id INTEGER DEFAULT NULL,
+  q1_comfort INTEGER CHECK (q1_comfort BETWEEN 1 AND 5),
+  q2_understood INTEGER CHECK (q2_understood BETWEEN 1 AND 5),
+  q3_time INTEGER CHECK (q3_time BETWEEN 1 AND 5),
+  q4_quality INTEGER CHECK (q4_quality BETWEEN 1 AND 5),
+  q5_respected INTEGER CHECK (q5_respected BETWEEN 1 AND 5),
+  q6_supported INTEGER CHECK (q6_supported BETWEEN 1 AND 5),
+  q7_hopeful INTEGER CHECK (q7_hopeful BETWEEN 1 AND 5),
+  q8_safe INTEGER CHECK (q8_safe BETWEEN 1 AND 5),
+  q9_communication INTEGER CHECK (q9_communication BETWEEN 1 AND 5),
+  q10_overall INTEGER CHECK (q10_overall BETWEEN 1 AND 5),
+  recommendation VARCHAR(5) CHECK (recommendation IN ('Yes', 'No', 'Maybe')),
   comments TEXT,
   is_anonymous BOOLEAN DEFAULT FALSE,
   respondent_email VARCHAR(255) DEFAULT NULL,
-  submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (counsellor_id) REFERENCES counsellors(id) ON DELETE CASCADE,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
-  INDEX idx_counsellor_id (counsellor_id),
-  INDEX idx_user_id (user_id),
-  INDEX idx_submitted_at (submitted_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  submitted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_feedback_counsellor FOREIGN KEY (counsellor_id) REFERENCES counsellors(id) ON DELETE CASCADE,
+  CONSTRAINT fk_feedback_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_feedback_counsellor_id ON feedback (counsellor_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_user_id ON feedback (user_id);
+CREATE INDEX IF NOT EXISTS idx_feedback_submitted_at ON feedback (submitted_at);
 
 -- Password reset tokens
-CREATE TABLE password_reset_tokens (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL,
   token VARCHAR(255) UNIQUE NOT NULL,
-  expires_at TIMESTAMP NOT NULL,
-  used_at TIMESTAMP DEFAULT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_token (token),
-  INDEX idx_user_id (user_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ DEFAULT NULL,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_prt_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_prt_token ON password_reset_tokens (token);
+CREATE INDEX IF NOT EXISTS idx_prt_user_id ON password_reset_tokens (user_id);

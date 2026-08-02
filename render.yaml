@@ -1,10 +1,11 @@
 services:
   - type: web
     name: wellness-centre-api
-    env: node
+    runtime: node
     plan: free
-    buildCommand: "pnpm install && pnpm exec tsc -p backend/tsconfig.json"
+    buildCommand: "pnpm install --frozen-lockfile && pnpm exec tsc -p backend/tsconfig.json"
     startCommand: "node backend/dist/index.js"
+    preDeployCommand: "pnpm exec tsx backend/scripts/migrate.ts && pnpm exec tsx backend/scripts/seed.ts"
     envVars:
       - key: NODE_ENV
         value: production
@@ -13,7 +14,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        value: https://your-frontend-url.vercel.app
+        value: https://wellness-centre-project.vercel.app
       - key: DB_HOST
         sync: false
       - key: DB_PORT
@@ -23,4 +24,16 @@ services:
       - key: DB_PASSWORD
         sync: false
       - key: DB_NAME
+        sync: false
+      - key: DB_SSL
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
         sync: false

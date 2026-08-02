@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { User } from '@/types';
-import { adminApi } from '@/lib/api';
+import { adminApi, getErrorMessage } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,14 +12,19 @@ import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 export function Approvals() {
   const [registrations, setRegistrations] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   const load = () => {
     setLoading(true);
-    adminApi.pendingRegistrations().then((res) => {
-      setRegistrations(res.registrations);
-      setLoading(false);
-    });
+    adminApi
+      .pendingRegistrations()
+      .then((res) => {
+        setRegistrations(res.registrations);
+        setError(null);
+      })
+      .catch(() => setError('Unable to load pending registrations.'))
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -31,8 +36,8 @@ export function Approvals() {
       await adminApi.approve(id);
       toast({ title: 'Approved', description: 'Registration approved' });
       load();
-    } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Error', description: err?.message });
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Error', description: getErrorMessage(err, 'Action failed') });
     }
   };
 
@@ -41,8 +46,8 @@ export function Approvals() {
       await adminApi.reject(id);
       toast({ title: 'Rejected', description: 'Registration rejected' });
       load();
-    } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Error', description: err?.message });
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Error', description: getErrorMessage(err, 'Action failed') });
     }
   };
 
@@ -62,6 +67,8 @@ export function Approvals() {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-accent" />
             </div>
+          ) : error ? (
+            <p className="py-8 text-center text-destructive">{error}</p>
           ) : registrations.length === 0 ? (
             <p className="py-8 text-center text-muted-foreground">No pending registrations.</p>
           ) : (

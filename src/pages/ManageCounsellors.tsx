@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Counsellor } from '@/types';
-import { counsellorApi } from '@/lib/api';
+import { counsellorApi, getErrorMessage } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,6 +36,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Pencil, Trash, Plus, Search } from 'lucide-react';
 
@@ -55,6 +56,7 @@ type CounsellorFormData = z.infer<typeof counsellorSchema>;
 export function ManageCounsellors() {
   const [counsellors, setCounsellors] = useState<Counsellor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<Counsellor | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [teamFilter, setTeamFilter] = useState<string>('all');
@@ -67,10 +69,14 @@ export function ManageCounsellors() {
 
   const load = () => {
     setLoading(true);
-    counsellorApi.getAll().then((res) => {
-      setCounsellors(res.counsellors);
-      setLoading(false);
-    });
+    counsellorApi
+      .getAll()
+      .then((res) => {
+        setCounsellors(res.counsellors);
+        setError(null);
+      })
+      .catch(() => setError('Unable to load counsellors.'))
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -104,8 +110,8 @@ export function ManageCounsellors() {
       setDialogOpen(false);
       setEditing(null);
       load();
-    } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Error', description: err?.message });
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Error', description: getErrorMessage(err, 'Save failed') });
     }
   };
 
@@ -126,8 +132,8 @@ export function ManageCounsellors() {
       await counsellorApi.delete(id);
       toast({ title: 'Deleted', description: 'Counsellor removed' });
       load();
-    } catch (err: any) {
-      toast({ variant: 'destructive', title: 'Error', description: err?.message });
+    } catch (err) {
+      toast({ variant: 'destructive', title: 'Error', description: getErrorMessage(err, 'Delete failed') });
     }
   };
 
@@ -186,6 +192,20 @@ export function ManageCounsellors() {
                   <Label>Email</Label>
                   <Input type="email" {...register('email')} />
                 </div>
+                <div className="flex items-center gap-2">
+                  <Controller
+                    name="is_active"
+                    control={control}
+                    render={({ field }) => (
+                      <Checkbox
+                        id="is_active"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    )}
+                  />
+                  <Label htmlFor="is_active">Active (visible to students for feedback)</Label>
+                </div>
                 <Button type="submit" className="w-full">{editing ? 'Save Changes' : 'Create'}</Button>
               </form>
             </DialogContent>
@@ -222,6 +242,8 @@ export function ManageCounsellors() {
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-6 w-6 animate-spin text-accent" />
             </div>
+          ) : error ? (
+            <p className="py-8 text-center text-destructive">{error}</p>
           ) : (
             <Table>
               <TableHeader>
