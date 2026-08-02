@@ -5,6 +5,7 @@ import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import { env } from './config/env';
 import { testConnection } from './config/db';
+import { setupDatabase } from './config/setup';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
 
@@ -66,10 +67,12 @@ app.use(errorHandler);
 async function start() {
   const dbConnected = await testConnection();
   if (!dbConnected) {
-    logger.error('Unable to connect to MySQL database. Check your environment variables.');
+    logger.error('Unable to connect to PostgreSQL database. Check your environment variables.');
     process.exit(1);
   }
-  logger.info('Connected to MySQL database.');
+  logger.info('Connected to PostgreSQL database.');
+
+  await setupDatabase();
 
   app.listen(env.PORT, () => {
     logger.info(`Server running on port ${env.PORT}`);
